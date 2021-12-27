@@ -11,17 +11,16 @@ const Login = ({token,usertype,performLogin}:any)=>{
     return <Redirect to="/" />;
   }
     return (
-      <body style={{backgroundColor:"grey",backgroundSize:"auto",padding:"182px"}}>
   <div className="card" 
-  style={{width: "400px", minHeight: "300px",position: "relative", top:"10px",left:"30%" 
-  ,padding: "20px", color:"darkblue",backgroundColor:"darkgrey"}}>
+  style={{width: "400px", minHeight: "300px",position: "relative", top:"100px",left:"35%" 
+  ,padding: "20px", color:"darkblue"}}>
     <h3> Work Force Management </h3>
-        <form style={{backgroundColor:"darkgrey"}}>
+        <form action="/action_page.php">
   <div className="mb-3 mt-3">
  
     <input type="text" className="form-control" 
     value={user}
-    placeholder="Enter UserName"
+    placeholder="username"
      onChange={(x:any)=>setUser(x.target.value)}
      />
   </div>
@@ -31,16 +30,15 @@ const Login = ({token,usertype,performLogin}:any)=>{
     className="form-control"
      value={pass}
      onChange={(x:any)=>setPass(x.target.value)}
-    placeholder="Enter Password"
+    placeholder="password"
     name="pswd"/>
   </div>
  
   <button type="button" className="btn btn-primary" onClick={()=>performLogin({
     username:user,password:pass
-  })}>SignIn</button>
+  })}>Login</button>
 </form>
 </div>
-</body>
     )
 }
 

@@ -1,103 +1,47 @@
+const route=require("express").Router();
+const {Sequelize,QueryTypes} = require('sequelize');
+var sequelize=require('./connection');
 
-const model= require('../orm/model')
-const route= require("express").Router();
-const {QueryTypes} = require('sequelize');
-const sequelize = require('./connection');
-const employees = model.employees;
-const softlock=model.softlock;
-
-route.post("/employees",async function(request,response){
-    try{
-        let loginname = request.body.username;
-        await sequelize.query('select e.employee_id as EmployeeID,e.name as Name,group_concat(s.name) as Skills,e.lockstatus as Status,e.experience as Experince, e.manager as Manager,p.name as Profile from employee e join skillmap sk on e.employee_id=sk.employee_id join skills s on sk.skillid=s.skillid join profile p on p.profile_id = e.profile_id where e.manager like :managername and e.lockstatus="not_requested" group by e.employee_id;',
-        {replacements: {managername: loginname},model:employees,mapToModel: true,type:sequelize.QueryTypes.SELECT}
-        ).then(function(employees){
-            response.status(200).json(employees)
-        })
-    }
-    catch(e){
-        console.log(e)
-        response.status(500);
-    }
+route.post("/employeeDetails/:username",(request,response)=>{
+    let username = request.params.username;
+    sequelize.query('select employee_id,e.name,GROUP_CONCAT(s.name) as skills,manager,wfm_manager,experience from employee as e, skills as s where manager = ? group by employee_id;',{replacements:[username],type: QueryTypes.SELECT}).then(data=>{
+        response.status(200).json(data)
+    }).catch(err=>{
+        response.status(500).send(err);
+    })
 })
 
-route.put("/updateemployees",async function(request,response){
-    try{
-        let employeeid = request.body.employeeid;
-        await sequelize.query("update employee set lockstatus='request_waiting' where employee_id=:employeeid;",
-        {replacements: {employeeid: employeeid},model:employees,mapToModel: true,type:sequelize.QueryTypes.UPDATE}
-        ).then(function(employees){
-            response.status(200).send("record updated");
-        })
-    }
-    catch(e){
-        console.log(e)
-        response.status(500)
-    }
+route.post('/softlock/:username',(req,res)=>{
+    let username = req.params.username;
+    sequelize.query(
+        'select a.employee_id,a.manager as Requestee,a.reqdate,a.requestmessage,b.manager as EmployeeManager,lockid,a.status from softlock a,employees b where a.employee_id=b.employee_id and b.wfm_manager = ? order by a.reqdate asc;',{replacements:[username],type: QueryTypes.SELECT}).then(data=>{
+        res.status(200).json(data)
+    }).catch(err=>{
+        res.status(500).send(err);
+    })
 })
 
-
-route.post("/insertsoftlock",async function(request,response){
-    try{
-        let employeeid = request.body.employeeid;
-        let manager = request.body.manager;
-        let responsemessage = request.body.responsemessage;
-        await sequelize.query("insert into softlock (employee_id,manager,reqdate,status,requestmessage) values(?,?,CurDate(),'waiting',?)",
-        {replacements: [employeeid,manager,responsemessage],model:softlock,mapToModel: true,type:sequelize.QueryTypes.INSERT}
-        ).then(function(){
-            response.status(200).send("record inserted");
-        })
-    }
-    catch(e){
-        console.log(e)
-        response.status(500);
-    }
+route.post('/softlocked',(req,res)=>{
+    let employee_id = req.body.employee_id;
+    let manager = req.body.manager;
+    let current_date = new Date().toISOString().slice(0, 10);
+    let message = req.body.message;
+    sequelize.query(`INSERT INTO softlock(employee_id,manager,reqdate,requestmessage) VALUES(?,?,?,?)`,{replacements:[employee_id,manager,current_date,message],type: QueryTypes.INSERT}).then(data=>{
+        res.status(200).send('Added successfull');
+    }).catch(err=>{
+        res.status(500).send(err);
+    })
 })
 
-route.post("/wfmtable",async function(request,response){
-    try{
-        let loginname = request.body.username;
-        await sequelize.query("select s.employee_id as EmployeeID,s.manager as Name,s.reqdate as ReqDate,s.requestmessage as ReqMessage,s.status as Status from softlock s join employee e on e.employee_id=s.employee_id where e.wfm_manager like :managername and e.lockstatus='request_waiting' and s.status='waiting'",
-        {replacements: {managername: loginname},model:Softlock,mapToModel: true,type:sequelize.QueryTypes.SELECT}
-        ).then(function(employees){
-            response.status(200).json(employees)
-        })
-    }
-    catch(e){
-        console.log(e)
-        response.status(500);
-    }
+route.put('/updateSoftlock/:lockid',(req,res)=>{
+    let approve_date = new Date().toISOString().slice(0, 10);
+    let status = req.body.status;
+    let lockid = req.params.lockid;
+    sequelize.query('update softlock set status=?,lastupdated=? where lockid=?',{replacements:[status,approve_date,lockid],type: QueryTypes.UPDATE}).then(data=>{
+        res.status(200).send(status);
+    }).catch(err=>{
+        res.status(500).send(err)
+    })
 })
 
-route.put("/updateEmployee",async function(request,response){
-    try{
-        let employeeid = request.body.employeeid;
-        let status = request.body.status;
-        await sequelize.query("update employee set lockstatus = :status where employee_id = :employeeid",
-        {replacements: {employeeid:employeeid,status:status}, model:employees,mapToModel: true,type:sequelize.QueryTypes.UPDATE}
-        ).then(function(){
-            response.status(200).json()
-        })
-    }
-    catch(e){
-        console.log(e)
-        response.status(500);
-    }
-})
-
-route.put("/updateSoftlock",async function(request,response){
-    try{
-        let employeeid = request.body.employeeid;
-        let status = request.body.status;
-        await sequelize.query("update softlock set status = :status ,lastupdated =CURDATE() where employee_id = :employeeid",
-        {replacements: {employeeid: employeeid,status: status}, model:employees,mapToModel: true,type:sequelize.QueryTypes.UPDATE}
-        ).then(function(){
-            response.status(200).json()
-        })
-    }
-    catch(e){
-        console.log(e)
-        response.status(500);
-    }
-})
-module.exports = route;
+module.exports=route;

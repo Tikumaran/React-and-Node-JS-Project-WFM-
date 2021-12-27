@@ -10,3 +10,13 @@ export const loginReducer=(state={username:"NA",token:"NA",usertype:"NA",message
             return state
     }
 }
+
+export const employeeData = (state={employee:'NA'},action)=>{
+    switch(action.type) {
+        case "EMPLOYEE_ACTION":
+            console.log(action.data.employee)
+            return {employee:action.data.employee}
+        default:
+            return state;
+    }
+}

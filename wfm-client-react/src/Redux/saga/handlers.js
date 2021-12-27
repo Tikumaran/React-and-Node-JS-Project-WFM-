@@ -23,3 +23,16 @@ export function* loginHandler(action){
   }
  
 }
+
+export function* employeeHandler(){
+  try{
+    const result = yield call(axios.get,'http://localhost:8000/employee/employeeDetails')
+    console.log(result)
+    yield put({
+      type:"EMPLOYEE_ACTION",
+      data:{employee:result.data}
+    })
+  } catch(e){
+    yield put({type:"NO_DATA_FOUND"})
+  }
+}

@@ -1,24 +1,92 @@
-import Login from "../Login";
-import Manager from "./ManagerTable";
+import React,{useState,useEffect} from "react";
+import {Table, Button, Modal, OverlayTrigger, Tooltip} from "react-bootstrap";
+
+import 'bootstrap/dist/css/bootstrap.min.css';
+import TextAreaBox from "./TextAreaBox";
+import LockIcon from '@mui/icons-material/Lock';
+import axios from 'axios';
+
+const username =  localStorage.getItem("username")
 
 const ManagerHome=()=>{
-    const username =  localStorage.getItem("username")
-    return (
-      <div style={{backgroundColor:"gray",backgroundSize:"auto",height:"665px"}}>
-        <nav className="navbar navbar-dark bg-dark justify-content-between">
-            <a className="navbar-brand" style={{}} >Manager Home Screen</a>
-            <form className="form-inline my-2 my-lg-0">
-                <a className="navbar-brand"><b>{username}</b></a>
-                <button className="btn btn-danger" onClick={()=>
-                {
-                  if(username)
-                    return  [localStorage.clear(),Login]
-                }}>SignOut</button>  
-            </form>
-        </nav>
-        <Manager/>
-      </div>
-    )
+
+  const [show,setShow] = useState(false);
+
+  const handleShow = () => setShow(true);
+  const handleClose = () => setShow(false);
+
+  const [emp,setEmp]=useState<any>([{}]);
+  const getEmployee = async ()=>{
+      const response = await axios.post(`http://localhost:8000/employee/employeeDetails/${username}`)
+      console.log(response,'result');
+      if(response.statusText === 'OK'){
+          setEmp(response.data)
+      }else{
+          console.log('Error')
+      }
+  }
+
+  useEffect(()=>{
+      getEmployee()
+  },[])
+
+  return (
+    <>
+    <div>
+        <h1 style={{textAlign: "center"}}><i>Manager</i></h1>
+    </div>
+    <Table responsive>
+        <thead>
+            <tr>
+                <th>Employee_ID</th>
+                <th>Name</th>
+                <th>Skills</th>
+                <th>Manager</th>
+                <th>Experience</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {emp.map((emp:any)=>(
+                <tr key={emp.employee_id}>
+                    <td>{emp.employee_id}</td>
+                    <td>{emp.name}</td>
+                    <td>{emp.skills}</td>
+                    <td>{emp.manager}</td>
+                    <td>{emp.experience}</td>
+                    <OverlayTrigger
+                        overlay={
+                            <Tooltip id={`tooltip-top`}>
+                                {emp.employee_id}
+                            </Tooltip>
+                        }>
+                    <Button onClick={handleShow} className="btn text-secondary btn-primary" data-toggle="modal">
+                        <LockIcon />
+                            SoftLock
+                    </Button>
+                    </OverlayTrigger>
+
+                    <Modal show={show} onHide={handleClose}>
+                        <Modal.Header closeButton>
+                            <Modal.Title>
+                                Edit Employee
+                            </Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <TextAreaBox emp={emp} id={emp.employee_id}/>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={handleClose}>
+                                Close Button
+                            </Button>
+                        </Modal.Footer>
+                    </Modal>
+                </tr>
+            ))}
+        </tbody>
+    </Table>
+    </>
+  )
 }
 
-export default ManagerHome;
+export default ManagerHome
